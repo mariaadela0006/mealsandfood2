@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monster Restaurant Battle</title>
+    <style>
+        :root {
+            --primary-bg: #fdf6e3;
+            --team1-color: #ff4757;
+            --team2-color: #2ed573;
+            --accent-color: #ffa502;
+            --text-dark: #2f3542;
+            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --cheap-color: #2ecc71;
+            --medium-color: #f1c40f;
+            --expensive-color: #e74c3c;
+            --free-color: #9b59b6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: #333;
+            background-image: url('home_bg.gif');
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            color: var(--text-dark);
+        }
+
+        /* Screens */
+        .screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 30px;
+            text-align: center;
+            border: 12px solid var(--accent-color);
+            max-width: 90%;
+            box-shadow: 0 15px 0 rgba(0,0,0,0.3);
+        }
+
+        h1 { font-size: 5rem; color: var(--accent-color); text-shadow: 4px 4px 0px #000; margin-bottom: 10px; }
+        h2 { font-size: 3rem; margin-bottom: 20px; }
+
+        .btn-large {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 20px 60px;
+            font-size: 3.5rem;
+            border-radius: 60px;
+            cursor: pointer;
+            box-shadow: 0 8px 0 #cc8400;
+            font-weight: bold;
+        }
+
+        /* Selection Grid */
+        .selection-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .monster-card {
+            background: #eee;
+            border-radius: 15px;
+            padding: 10px;
+            cursor: pointer;
+            border: 5px solid transparent;
+            transition: 0.2s;
+        }
+
+        .monster-card:hover { transform: scale(1.1); background: #fff; }
+        .monster-card.selected { opacity: 0.3; filter: grayscale(100%); }
+        .monster-card img { width: 110px; height: 110px; object-fit: contain; }
+
+        /* Main Game Layout */
+        #game-screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.9);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .top-container {
+            display: flex;
+            flex: 1; 
+            padding: 10px;
+            gap: 10px;
+            min-height: 0;
+            align-items: stretch;
+        }
+
+        .team-area {
+            width: 18%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            padding: 10px;
+            border: 8px solid #ccc;
+            background: white;
+            transition: transform 0.3s;
+        }
+
+        .team-area.active {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 30px var(--accent-color);
+            transform: scale(1.02);
+            z-index: 5;
+        }
+
+        .team-1 { border-color: var(--team1-color); }
+        .team-2 { border-color: var(--team2-color); }
+
+        .team-label { font-size: 1.8rem; font-weight: bold; }
+        .wallet { font-size: 2.2rem; font-weight: 900; color: #2d3436; margin-top: 5px; }
+        .team-monster-img { max-width: 85%; max-height: 35%; object-fit: contain; }
+
+        .center-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0 5px;
+            min-height: 0;
+        }
+
+        .cashier-img { max-height: 30%; margin-bottom: 5px; }
+        .current-monster-img { max-height: 20%; margin-bottom: 5px; }
+
+        /* MODIFIED BIG QUESTION BUBBLE */
+        .bubble {
+            background: white;
+            padding: 25px 40px;
+            border-radius: 40px;
+            border: 8px solid #333;
+            position: relative;
+            max-width: 98%;
+            box-shadow: 0 10px 0 rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .question-text { 
+            font-size: 2.5rem; 
+            font-weight: bold; 
+            color: #d35400; 
+            margin-bottom: 15px;
+            line-height: 1;
+        }
+        .sentence-text { 
+            font-size: 4.8rem; /* Significantly Increased */
+            font-weight: 900; 
+            line-height: 1.1;
+            letter-spacing: -1px;
+        }
+        .sentence-blank { 
+            color: #2980b9; 
+            text-decoration: underline; 
+            text-underline-offset: 12px;
+            padding: 0 10px;
+        }
+
+        /* FIXED HEIGHT BOTTOM AREA */
+        .bottom-area {
+            height: 280px;
+            background: #2f3542;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            flex-shrink: 0;
+        }
+
+        .food-btn {
+            background: white;
+            border-radius: 25px;
+            flex: 1;
+            max-width: 200px;
+            height: 95%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 8px solid transparent;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.2);
+        }
+
+        .food-btn:hover { transform: translateY(-10px); border-color: var(--accent-color); }
+        .food-btn.disabled { filter: grayscale(100%); opacity: 0.3; cursor: not-allowed; box-shadow: none; transform: none; }
+        
+        .food-btn img { 
+            max-width: 120px; 
+            max-height: 120px; 
+            object-fit: contain; 
+            margin-bottom: 10px; 
+        }
+        .food-btn span { 
+            font-size: 2rem; 
+            font-weight: 900; 
+            text-transform: uppercase;
+        }
+
+        /* UI Overlays */
+        .turn-banner {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-color);
+            color: white;
+            padding: 5px 40px;
+            font-size: 1.8rem;
+            font-weight: bold;
+            border-radius: 0 0 20px 20px;
+            z-index: 100;
+        }
+
+        #round-info {
+            position: absolute;
+            bottom: 295px;
+            right: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: white;
+            padding: 5px 15px;
+            border-radius: 12px;
+            border: 3px solid #333;
+        }
+
+        .feedback-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            display: none;
+            pointer-events: none;
+        }
+
+        .feedback-content {
+            background: white;
+            border-radius: 40px;
+            padding: 30px;
+            border: 15px solid white;
+            text-align: center;
+            animation: popOut 4s forwards;
+            box-shadow: 0 0 100px rgba(0,0,0,0.5);
+        }
+
+        .feedback-gif { width: 300px; height: 300px; object-fit: contain; }
+        .feedback-text { font-size: 5rem; font-weight: 900; }
+
+        @keyframes popOut {
+            0% { transform: scale(0); opacity: 0; }
+            5% { transform: scale(1.1); opacity: 1; }
+            10% { transform: scale(1); opacity: 1; }
+            90% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0; }
+        }
+
+        .controls { position: absolute; top: 10px; right: 10px; z-index: 100; }
+        .controls button { padding: 8px 15px; font-size: 1rem; cursor: pointer; border-radius: 10px; border: none; background: #eee; opacity: 0.7; }
+        .controls button:hover { opacity: 1; }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen" class="screen">
+        <div class="modal">
+            <img src="cashier.png" alt="Cashier" style="height: 200px;" onerror="this.src='https://via.placeholder.com/200?text=Manager'">
+            <h1>Monster Restaurant</h1>
+            <h2>BATTLE!</h2>
+            <button class="btn-large" onclick="showSelection()">PLAY NOW</button>
+        </div>
+    </div>
+
+    <div id="selection-screen" class="screen" style="display:none;">
+        <div class="modal" style="width: 1000px;">
+            <h2 id="selection-title" style="font-size: 2.5rem;">Team 1: Choose Your Monster</h2>
+            <div class="selection-grid" id="monster-grid"></div>
+        </div>
+    </div>
+
+    <div id="win-screen" class="screen" style="display:none;">
+        <div class="modal" style="padding: 40px;">
+            <h1 id="winner-text" style="font-size: 6rem;">Team 1 Wins!</h1>
+            <div style="display: flex; gap: 60px; justify-content: center; margin: 30px 0;">
+                <div>
+                    <h3 style="font-size: 2.5rem;">Team 1</h3>
+                    <p id="final-money-1" style="font-size: 5rem; font-weight: 900; color: var(--team1-color);">$0</p>
+                </div>
+                <div>
+                    <h3 style="font-size: 2.5rem;">Team 2</h3>
+                    <p id="final-money-2" style="font-size: 5rem; font-weight: 900; color: var(--team2-color);">$0</p>
+                </div>
+            </div>
+            <button class="btn-large" onclick="location.reload()">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <div id="game-screen">
+        <div id="turn-display" class="turn-banner">Team 1's Turn</div>
+        <div class="controls">
+            <button onclick="endGame()">End Game</button>
+        </div>
+        
+        <div class="top-container">
+            <div id="area-t1" class="team-area team-1 active">
+                <div class="team-label">Team 1</div>
+                <img id="monster-img-t1" class="team-monster-img" src="" alt="T1">
+                <div id="wallet-t1" class="wallet">$10,000</div>
+            </div>
+
+            <div class="center-area">
+                <img src="cashier.png" class="cashier-img" alt="Cashier" onerror="this.style.display='none'">
+                <img id="current-turn-monster" class="current-monster-img" src="" alt="Current">
+                
+                <div class="bubble">
+                    <div class="question-text">“What would you like for dinner?”</div>
+                    <div class="sentence-text">I’d like some <span id="answer-blank" class="sentence-blank">_______</span>.</div>
+                </div>
+            </div>
+
+            <div id="area-t2" class="team-area team-2">
+                <div class="team-label">Team 2</div>
+                <img id="monster-img-t2" class="team-monster-img" src="" alt="T2">
+                <div id="wallet-t2" class="wallet">$10,000</div>
+            </div>
+        </div>
+
+        <div id="round-info">Turn: 1</div>
+
+        <div class="bottom-area" id="food-container">
+            <div class="food-btn" data-food="salad" onclick="handleFoodClick('salad', this)">
+                <img src="salad.png" alt="salad" onerror="this.src='https://via.placeholder.com/120?text=🥗'">
+                <span>salad</span>
+            </div>
+            <div class="food-btn" data-food="soup" onclick="handleFoodClick('soup', this)">
+                <img src="soup.png" alt="soup" onerror="this.src='https://via.placeholder.com/120?text=🥣'">
+                <span>soup</span>
+            </div>
+            <div class="food-btn" data-food="bread" onclick="handleFoodClick('bread', this)">
+                <img src="bread.png" alt="bread" onerror="this.src='https://via.placeholder.com/120?text=🍞'">
+                <span>bread</span>
+            </div>
+            <div class="food-btn" data-food="noodles" onclick="handleFoodClick('noodles', this)">
+                <img src="noodles.png" alt="noodles" onerror="this.src='https://via.placeholder.com/120?text=🍜'">
+                <span>noodles</span>
+            </div>
+            <div class="food-btn" data-food="chicken" onclick="handleFoodClick('chicken', this)">
+                <img src="chicken.png" alt="chicken" onerror="this.src='https://via.placeholder.com/120?text=🍗'">
+                <span>chicken</span>
+            </div>
+            <div class="food-btn" data-food="hamburger" onclick="handleFoodClick('hamburger', this)">
+                <img src="hamburger.png" alt="hamburger" onerror="this.src='https://via.placeholder.com/120?text=🍔'">
+                <span>burger</span>
+            </div>
+            <div class="food-btn" data-food="apple" onclick="handleFoodClick('apple', this)">
+                <img src="apple.png" alt="apple" onerror="this.src='https://via.placeholder.com/120?text=🍎'">
+                <span>apple</span>
+            </div>
+            <div class="food-btn" data-food="pizza" onclick="handleFoodClick('pizza', this)">
+                <img src="pizza.png" alt="pizza" onerror="this.src='https://via.placeholder.com/120?text=🍕'">
+                <span>pizza</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="feedback-layer" class="feedback-popup">
+        <div class="feedback-content" id="fb-content">
+            <img src="cheap.gif" id="fb-gif" class="feedback-gif" alt="feedback">
+            <div id="fb-text" class="feedback-text">CHEAP! -$10</div>
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            currentTeam: 1,
+            wallets: { 1: 10000, 2: 10000 },
+            monsters: { 1: '', 2: '' },
+            turnCount: 1,
+            selectedMonsters: [],
+            disabledFoods: [],
+            selectingFor: 1
+        };
+
+        function showSelection() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('selection-screen').style.display = 'flex';
+            const grid = document.getElementById('monster-grid');
+            grid.innerHTML = '';
+            for(let i=1; i<=15; i++) {
+                const filename = `monster${i}.gif`;
+                const div = document.createElement('div');
+                div.className = 'monster-card';
+                div.innerHTML = `<img src="${filename}" onerror="this.src='https://via.placeholder.com/110?text=M${i}'">`;
+                div.onclick = () => selectMonster(filename, div);
+                grid.appendChild(div);
+            }
+        }
+
+        function selectMonster(filename, element) {
+            if (gameState.selectedMonsters.includes(filename)) return;
+            gameState.monsters[gameState.selectingFor] = filename;
+            gameState.selectedMonsters.push(filename);
+            element.classList.add('selected');
+            if (gameState.selectingFor === 1) {
+                gameState.selectingFor = 2;
+                document.getElementById('selection-title').innerText = "Team 2: Choose Your Monster";
+            } else {
+                startGame();
+            }
+        }
+
+        function startGame() {
+            document.getElementById('selection-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'flex';
+            document.getElementById('monster-img-t1').src = gameState.monsters[1];
+            document.getElementById('monster-img-t2').src = gameState.monsters[2];
+            updateUI();
+        }
+
+        function handleFoodClick(foodName, element) {
+            if (element.classList.contains('disabled')) return;
+            
+            document.getElementById('answer-blank').innerText = foodName;
+            element.classList.add('disabled');
+            gameState.disabledFoods.push(foodName);
+
+            const isFree = Math.random() < 0.12;
+            const price = Math.floor(Math.random() * (500 - 10 + 1)) + 10;
+            
+            const fbLayer = document.getElementById('feedback-layer');
+            const fbContent = document.getElementById('fb-content');
+            const fbGif = document.getElementById('fb-gif');
+            const fbText = document.getElementById('fb-text');
+
+            let categoryText = "", gifSrc = "", color = "";
+
+            if (isFree) {
+                categoryText = "FREE MEAL!";
+                gifSrc = "happy.gif";
+                color = "var(--free-color)";
+            } else {
+                gameState.wallets[gameState.currentTeam] -= price;
+                if (price <= 170) { categoryText = "CHEAP!"; gifSrc = "cheap.gif"; color = "var(--cheap-color)"; }
+                else if (price <= 340) { categoryText = "MEDIUM!"; gifSrc = "okay.gif"; color = "var(--medium-color)"; }
+                else { categoryText = "EXPENSIVE!"; gifSrc = "sad.gif"; color = "var(--expensive-color)"; }
+            }
+
+            fbLayer.style.display = 'flex';
+            fbContent.style.borderColor = color;
+            fbGif.src = gifSrc;
+            fbGif.onerror = function() { this.src = `https://via.placeholder.com/300?text=${categoryText}`; };
+            fbText.innerText = isFree ? `${categoryText}` : `${categoryText} -$${price}`;
+            fbText.style.color = color;
+
+            const allButtons = document.querySelectorAll('.food-btn');
+            allButtons.forEach(b => b.style.pointerEvents = 'none');
+
+            setTimeout(() => {
+                fbLayer.style.display = 'none';
+                document.getElementById('answer-blank').innerText = '_______';
+                allButtons.forEach(b => b.style.pointerEvents = 'auto');
+                if (gameState.disabledFoods.length >= 6) resetMenu();
+                
+                gameState.currentTeam = gameState.currentTeam === 1 ? 2 : 1;
+                gameState.turnCount++;
+                if (gameState.wallets[1] <= 0 || gameState.wallets[2] <= 0) endGame();
+                else updateUI();
+            }, 4000); 
+        }
+
+        function resetMenu() {
+            gameState.disabledFoods = [];
+            document.querySelectorAll('.food-btn').forEach(btn => btn.classList.remove('disabled'));
+        }
+
+        function updateUI() {
+            document.getElementById('wallet-t1').innerText = `$${gameState.wallets[1].toLocaleString()}`;
+            document.getElementById('wallet-t2').innerText = `$${gameState.wallets[2].toLocaleString()}`;
+            document.getElementById('area-t1').classList.toggle('active', gameState.currentTeam === 1);
+            document.getElementById('area-t2').classList.toggle('active', gameState.currentTeam === 2);
+            document.getElementById('turn-display').innerText = `Team ${gameState.currentTeam}'s Turn`;
+            document.getElementById('turn-display').style.background = gameState.currentTeam === 1 ? 'var(--team1-color)' : 'var(--team2-color)';
+            document.getElementById('current-turn-monster').src = gameState.monsters[gameState.currentTeam];
+            document.getElementById('round-info').innerText = `Turn: ${gameState.turnCount}`;
+        }
+
+        function endGame() {
+            document.getElementById('game-screen').style.display = 'none';
+            document.getElementById('win-screen').style.display = 'flex';
+            const w1 = gameState.wallets[1], w2 = gameState.wallets[2];
+            document.getElementById('final-money-1').innerText = `$${w1.toLocaleString()}`;
+            document.getElementById('final-money-2').innerText = `$${w2.toLocaleString()}`;
+            let winText = w1 > w2 ? "Team 1 Wins!" : (w2 > w1 ? "Team 2 Wins!" : "It's a Tie!");
+            document.getElementById('winner-text').innerText = winText;
+        }
+    </script>
+</body>
+</html>
